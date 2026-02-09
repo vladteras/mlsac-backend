@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MLSAC Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; font-family: 'Inter', sans-serif; }
+        .card { background-color: #1e293b; border-radius: 0.75rem; padding: 1.5rem; border: 1px solid #334155; }
+        .stat-value { font-size: 2.25rem; font-weight: 700; color: #f8fafc; }
+        .stat-label { font-size: 0.875rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+        .table-header { color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.75rem 1rem; text-align: left; }
+        .table-row { border-top: 1px solid #334155; transition: background-color 0.2s; }
+        .table-row:hover { background-color: #334155; }
+        .table-cell { padding: 0.75rem 1rem; font-size: 0.875rem; }
+        .badge { padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+        .badge-safe { background-color: #166534; color: #dcfce7; }
+        .badge-sus { background-color: #854d0e; color: #fef9c3; }
+        .badge-cheat { background-color: #991b1b; color: #fee2e2; }
+        .badge-active { background-color: #166534; color: #dcfce7; }
+        .badge-expiring { background-color: #854d0e; color: #fef9c3; }
+        
+        /* Custom Input */
+        .input-dark {
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            width: 100%;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .input-dark:focus { border-color: #60a5fa; }
+
+        /* Button */
+        .btn-primary {
+            background-color: white;
+            color: #0f172a;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: opacity 0.2s;
+            cursor: pointer;
+        }
+        .btn-primary:hover { opacity: 0.9; }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .btn-outline:hover { background-color: #334155; }
+        
+        .btn-danger {
+            background-color: rgba(153, 27, 27, 0.2);
+            border: 1px solid #991b1b;
+            color: #fca5a5;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .btn-danger:hover { background-color: rgba(153, 27, 27, 0.3); }
+
+        .hidden-view { display: none; }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-7xl mx-auto space-y-8">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-4">
+                <div id="backButton" class="hidden cursor-pointer hover:bg-slate-800 p-2 rounded-full" onclick="showServerList()">
+                    <i class="fas fa-arrow-left text-slate-400"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400" id="pageTitle">Server Management</h1>
+                    <p class="text-slate-400 mt-1" id="pageSubtitle">Manage your game server protections</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                 <div class="flex items-center gap-2">
+                    <div class="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span class="text-sm text-green-400">System Online</span>
+                </div>
+                <button class="btn-primary" id="connectServerBtn" onclick="openCreateModal()">
+                    <i class="fas fa-plus mr-2"></i> Connect Server
+                </button>
+            </div>
+        </div>
+
+        <!-- SERVER LIST VIEW -->
+        <div id="serverListView">
+            <!-- Summary Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="card flex items-center gap-4">
+                    <div class="p-3 bg-indigo-900/50 rounded-lg text-indigo-400"><i class="fas fa-server text-2xl"></i></div>
+                    <div>
+                        <div class="stat-label">Total Servers</div>
+                        <div class="text-2xl font-bold text-white" id="totalServersCount">0</div>
+                    </div>
+                </div>
+                <div class="card flex items-center gap-4">
+                    <div class="p-3 bg-green-900/50 rounded-lg text-green-400"><i class="fas fa-heartbeat text-2xl"></i></div>
+                    <div>
+                        <div class="stat-label">Active</div>
+                        <div class="text-2xl font-bold text-white" id="activeServersCount">0</div>
+                    </div>
+                </div>
+                <div class="card flex items-center gap-4">
+                    <div class="p-3 bg-orange-900/50 rounded-lg text-orange-400"><i class="fas fa-exclamation-triangle text-2xl"></i></div>
+                    <div>
+                        <div class="stat-label">Needs Attention</div>
+                        <div class="text-2xl font-bold text-white" id="attentionServersCount">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="mb-6 relative">
+                <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                <input type="text" class="input-dark pl-10" placeholder="Search by name or ID...">
+            </div>
+
+            <!-- Server List -->
+            <div class="space-y-4" id="serverListContainer">
+                <!-- Server Item Template -->
+                <!-- <div class="card p-4 flex items-center justify-between hover:border-blue-500/50 transition-colors cursor-pointer">
+                    <div class="flex items-center gap-4">
+                        <div class="h-12 w-12 bg-slate-800 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-server text-slate-400"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-bold text-lg text-white">Trial Server</h3>
+                                <div class="h-2 w-2 rounded-full bg-yellow-500"></div>
+                            </div>
+                            <div class="text-xs text-slate-500 font-mono">ID: 985FE83F...</div>
+                        </div>
+                        <div class="ml-8">
+                            <span class="badge badge-expiring">Expiring</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-8">
+                        <div>
+                            <div class="text-xs text-slate-500 uppercase">License & Tariff</div>
+                            <div class="text-sm text-slate-300"><i class="fas fa-shield-alt mr-1 text-purple-400"></i> Trial Period • 3 days</div>
+                        </div>
+                        <button class="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700">
+                            <i class="fas fa-arrow-right text-slate-400"></i>
+                        </button>
+                    </div>
+                </div> -->
+            </div>
+        </div>
+
+        <!-- SERVER DETAIL VIEW -->
+        <div id="serverDetailView" class="hidden-view">
+            <!-- Action Bar -->
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-4 text-sm text-slate-400 font-mono" id="serverDetailId">
+                    ID: ...
+                </div>
+                <div class="flex gap-2">
+                    <button class="btn-outline" onclick="fetchServerStats()"><i class="fas fa-sync-alt"></i></button>
+                    <button class="btn-primary" onclick="renewServer()"><i class="fas fa-bolt mr-2"></i> Renew</button>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <div class="card p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="stat-label">Online</span>
+                        <i class="fas fa-users text-slate-600"></i>
+                    </div>
+                    <div class="stat-value" id="detailOnline">0</div>
+                    <div class="text-xs text-slate-500 mt-1">Limit: <span id="detailLimit">50</span></div>
+                </div>
+                <div class="card p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="stat-label">Requests</span>
+                        <i class="fas fa-wave-square text-slate-600"></i>
+                    </div>
+                    <div class="stat-value" id="detailRequests">0</div>
+                    <div class="text-xs text-slate-500 mt-1">Total all time</div>
+                </div>
+                <div class="card p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="stat-label">Detections</span>
+                        <i class="fas fa-shield-alt text-slate-600"></i>
+                    </div>
+                    <div class="stat-value text-red-400" id="detailDetections">0</div>
+                    <div class="text-xs text-slate-500 mt-1">Total found</div>
+                </div>
+                <div class="card p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="stat-label">Today</span>
+                        <i class="fas fa-clock text-slate-600"></i>
+                    </div>
+                    <div class="stat-value" id="detailToday">0</div>
+                    <div class="text-xs text-slate-500 mt-1">Requests 24h</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Activity Chart & Recent Logs -->
+                <div class="lg:col-span-2 space-y-6">
+                     <!-- Chart -->
+                    <div class="card">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-white"><i class="fas fa-chart-line mr-2 text-purple-400"></i> Activity</h2>
+                            <div class="flex bg-slate-800 rounded p-1 text-xs">
+                                <button class="px-3 py-1 bg-slate-700 rounded text-white">24h</button>
+                                <button class="px-3 py-1 text-slate-400 hover:text-white">7d</button>
+                                <button class="px-3 py-1 text-slate-400 hover:text-white">30d</button>
+                            </div>
+                        </div>
+                        <div class="h-64 flex items-center justify-center text-slate-500">
+                             <canvas id="activityChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity Table (Reused) -->
+                    <div class="card overflow-hidden">
+                        <h2 class="text-lg font-semibold mb-4 text-white">Recent Detections</h2>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr>
+                                        <th class="table-header">Player</th>
+                                        <th class="table-header">Time</th>
+                                        <th class="table-header">Prob</th>
+                                        <th class="table-header">Verdict</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentTableBody">
+                                    <!-- Rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Sidebar: License & Key -->
+                <div class="space-y-6">
+                    <!-- License -->
+                    <div class="card">
+                        <h2 class="text-lg font-semibold mb-4 text-white"><i class="fas fa-certificate mr-2 text-green-400"></i> License</h2>
+                        <div class="bg-slate-800/50 rounded-lg p-4 mb-4 border border-slate-700">
+                            <div class="text-xs text-slate-500 uppercase mb-1">Tariff</div>
+                            <div class="font-bold text-white text-lg" id="detailLicenseType">Standard</div>
+                        </div>
+                        <div class="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+                            <div class="text-xs text-slate-500 uppercase mb-1">Expires</div>
+                            <div class="font-bold text-white text-lg" id="detailExpires">2026-02-12</div>
+                        </div>
+                    </div>
+
+                    <!-- API Key -->
+                    <div class="card">
+                        <h2 class="text-lg font-semibold mb-4 text-white"><i class="fas fa-key mr-2 text-blue-400"></i> API Key</h2>
+                        <div class="flex items-center gap-2 bg-slate-900 p-3 rounded-lg border border-slate-700 mb-4">
+                            <code class="text-slate-300 text-sm flex-1 overflow-hidden text-ellipsis whitespace-nowrap" id="detailApiKey">mls_live_********************</code>
+                            <button class="text-slate-400 hover:text-white" onclick="toggleApiKey()"><i class="far fa-eye"></i></button>
+                            <button class="text-slate-400 hover:text-white" onclick="copyApiKey()"><i class="far fa-copy"></i></button>
+                        </div>
+                        <button class="btn-danger w-full text-sm" onclick="resetApiKey()"><i class="fas fa-exclamation-triangle mr-2"></i> Reset Key</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Create Server Modal -->
+    <div id="createModal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="card w-full max-w-md shadow-2xl">
+            <h2 class="text-xl font-bold text-white mb-4">Connect New Server</h2>
+            <div class="mb-4">
+                <label class="block text-sm text-slate-400 mb-2">Server Name</label>
+                <input type="text" id="newServerName" class="input-dark" placeholder="My Minecraft Server">
+            </div>
+            <div class="flex justify-end gap-3">
+                <button class="btn-outline" onclick="closeCreateModal()">Cancel</button>
+                <button class="btn-primary" onclick="createServer()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentServerId = null;
+        let fullApiKey = "";
+
+        // --- View Management ---
+        function showServerList() {
+            document.getElementById('serverListView').classList.remove('hidden-view');
+            document.getElementById('serverDetailView').classList.add('hidden-view');
+            document.getElementById('backButton').classList.add('hidden');
+            document.getElementById('connectServerBtn').classList.remove('hidden');
+            
+            document.getElementById('pageTitle').textContent = 'Server Management';
+            document.getElementById('pageSubtitle').textContent = 'Manage your game server protections';
+            
+            fetchServers();
+        }
+
+        function showServerDetail(id, name) {
+            currentServerId = id;
+            document.getElementById('serverListView').classList.add('hidden-view');
+            document.getElementById('serverDetailView').classList.remove('hidden-view');
+            document.getElementById('backButton').classList.remove('hidden');
+            document.getElementById('connectServerBtn').classList.add('hidden');
+            
+            document.getElementById('pageTitle').textContent = name;
+            document.getElementById('pageSubtitle').textContent = 'Server Overview & Analytics';
+            
+            fetchServerStats();
+        }
+
+        // --- API Calls ---
+
+        async function fetchServers() {
+            try {
+                const res = await fetch('/api/servers');
+                const servers = await res.json();
+                
+                const container = document.getElementById('serverListContainer');
+                container.innerHTML = '';
+                
+                let total = servers.length;
+                let active = 0;
+                let attention = 0;
+
+                servers.forEach(server => {
+                    if (server.status === 'Active') active++;
+                    else attention++;
+
+                    const div = document.createElement('div');
+                    div.className = 'card p-4 flex items-center justify-between hover:border-blue-500/50 transition-colors cursor-pointer';
+                    div.onclick = () => showServerDetail(server.id, server.name);
+                    
+                    const isExpiring = new Date(server.expiration_date) < new Date(Date.now() + 3 * 86400000);
+                    const statusBadge = isExpiring 
+                        ? '<span class="badge badge-expiring">Expiring</span>'
+                        : '<span class="badge badge-active">Active</span>';
+
+                    div.innerHTML = `
+                        <div class="flex items-center gap-4">
+                            <div class="h-12 w-12 bg-slate-800 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-server text-slate-400"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="font-bold text-lg text-white">${server.name}</h3>
+                                    ${server.online_count > 0 ? '<div class="h-2 w-2 rounded-full bg-green-500"></div>' : '<div class="h-2 w-2 rounded-full bg-slate-500"></div>'}
+                                </div>
+                                <div class="text-xs text-slate-500 font-mono">ID: ${server.id.substring(0, 8)}...</div>
+                            </div>
+                            <div class="ml-8 hidden md:block">
+                                ${statusBadge}
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-8">
+                            <div class="hidden md:block text-right">
+                                <div class="text-xs text-slate-500 uppercase">License</div>
+                                <div class="text-sm text-slate-300"><i class="fas fa-shield-alt mr-1 text-purple-400"></i> ${server.license_type}</div>
+                            </div>
+                            <button class="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700">
+                                <i class="fas fa-arrow-right text-slate-400"></i>
+                            </button>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+
+                document.getElementById('totalServersCount').textContent = total;
+                document.getElementById('activeServersCount').textContent = active;
+                document.getElementById('attentionServersCount').textContent = attention;
+
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function fetchServerStats() {
+            if (!currentServerId) return;
+            
+            // 1. Get Server Info
+            try {
+                const res = await fetch(`/api/servers/${currentServerId}`);
+                const server = await res.json();
+                
+                document.getElementById('serverDetailId').textContent = 'ID: ' + server.id;
+                document.getElementById('detailOnline').textContent = server.online_count;
+                document.getElementById('detailLimit').textContent = server.limit_count;
+                document.getElementById('detailRequests').textContent = server.detections_total + server.requests_today; // Rough approx
+                document.getElementById('detailDetections').textContent = server.detections_total;
+                document.getElementById('detailToday').textContent = server.requests_today;
+                
+                document.getElementById('detailLicenseType').textContent = server.license_type;
+                document.getElementById('detailExpires').textContent = new Date(server.expiration_date).toLocaleDateString();
+                
+                fullApiKey = server.api_key;
+                document.getElementById('detailApiKey').textContent = 'mls_live_********************';
+                
+            } catch (e) { console.error(e); }
+
+            // 2. Get Recent Checks (Global for now, ideally filtered by server)
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+                
+                const tbody = document.getElementById('recentTableBody');
+                tbody.innerHTML = '';
+                data.recent_checks.forEach(check => {
+                     const row = document.createElement('tr');
+                    row.className = 'table-row';
+                    
+                    let badgeClass = 'badge-safe';
+                    if (check.verdict === 'CHEAT') badgeClass = 'badge-cheat';
+                    else if (check.verdict === 'SUSPICIOUS') badgeClass = 'badge-sus';
+
+                    row.innerHTML = `
+                        <td class="table-cell font-medium text-white">${check.player.substring(0, 12)}...</td>
+                        <td class="table-cell text-slate-400">${new Date(check.time).toLocaleTimeString()}</td>
+                        <td class="table-cell">${(check.prob * 100).toFixed(1)}%</td>
+                        <td class="table-cell"><span class="badge ${badgeClass}">${check.verdict}</span></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                
+                // Update Activity Chart (Mock Data based on real detections)
+                updateChart(data.total_checks, data.flagged_count);
+
+            } catch (e) { console.error(e); }
+        }
+
+        // --- Actions ---
+
+        function openCreateModal() { document.getElementById('createModal').classList.remove('hidden'); }
+        function closeCreateModal() { document.getElementById('createModal').classList.add('hidden'); }
+
+        async function createServer() {
+            const name = document.getElementById('newServerName').value;
+            if (!name) return;
+            
+            const res = await fetch('/api/servers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            
+            if (res.ok) {
+                closeCreateModal();
+                fetchServers();
+            }
+        }
+
+        async function renewServer() {
+            if (!confirm('Renew license for 30 days?')) return;
+            await fetch(`/api/servers/${currentServerId}/renew`, { method: 'POST' });
+            fetchServerStats();
+        }
+
+        async function resetApiKey() {
+            if (!confirm('Are you sure? Old key will stop working immediately.')) return;
+            const res = await fetch(`/api/servers/${currentServerId}/reset_key`, { method: 'POST' });
+            const data = await res.json();
+            fullApiKey = data.api_key;
+            document.getElementById('detailApiKey').textContent = fullApiKey;
+        }
+
+        function toggleApiKey() {
+            const el = document.getElementById('detailApiKey');
+            if (el.textContent.includes('*')) el.textContent = fullApiKey;
+            else el.textContent = 'mls_live_********************';
+        }
+
+        function copyApiKey() {
+            navigator.clipboard.writeText(fullApiKey);
+            alert('Copied to clipboard!');
+        }
+
+        // --- Chart ---
+        let activityChart = null;
+        function initChart() {
+            const ctx = document.getElementById('activityChart').getContext('2d');
+            activityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '23:59'],
+                    datasets: [{
+                        label: 'Requests',
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        borderColor: '#60a5fa',
+                        tension: 0.4,
+                        fill: true,
+                        backgroundColor: 'rgba(96, 165, 250, 0.1)'
+                    }, {
+                        label: 'Detections',
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        borderColor: '#f87171',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8' } } },
+                    scales: {
+                        y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+        }
+        
+        function updateChart(total, flagged) {
+            if (!activityChart) return;
+            // Mock dynamic update
+            const base = total / 10;
+            const dbase = flagged / 10;
+            activityChart.data.datasets[0].data = Array(7).fill(0).map(() => Math.floor(Math.random() * base + 1));
+            activityChart.data.datasets[1].data = Array(7).fill(0).map(() => Math.floor(Math.random() * dbase));
+            activityChart.update();
+        }
+
+        // --- Init ---
+        window.onload = () => {
+            initChart();
+            showServerList();
+        };
+
+    </script>
+</body>
+</html>
