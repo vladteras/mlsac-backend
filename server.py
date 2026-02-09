@@ -47,10 +47,11 @@ def init_db():
     # Check if we have any servers, if not create a default Trial Server
     c.execute("SELECT count(*) FROM servers")
     if c.fetchone()[0] == 0:
-        trial_id = str(uuid.uuid4())
-        trial_key = "mls_live_" + str(uuid.uuid4()).replace("-", "")[:24]
-        # Expire in 3 days
-        expire_date = datetime.datetime.now() + datetime.timedelta(days=3)
+        # Use fixed ID and Key for Trial Server so it survives DB resets (useful for Render/tmp)
+        trial_id = "trial-server-default"
+        trial_key = "mls_live_trial_key_FIXED"
+        # Expire in 30 days
+        expire_date = datetime.datetime.now() + datetime.timedelta(days=30)
         c.execute("INSERT INTO servers VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                   (trial_id, "Trial Server", trial_key, "Trial period", expire_date, "Active", 0, 50, 0, 0))
         conn.commit()
@@ -262,3 +263,4 @@ async def read_index():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+#f
