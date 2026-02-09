@@ -15,6 +15,7 @@ app = FastAPI()
 # Use /tmp for Render compatibility to avoid permission issues
 # Note: Data will be reset on restart. For persistence, use a Persistent Disk or external DB.
 import tempfile
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(tempfile.gettempdir(), "mlsac.db")
 
 import uuid
