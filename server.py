@@ -12,7 +12,10 @@ import os
 app = FastAPI()
 
 # Database setup
-DB_FILE = "backend/mlsac.db"
+# Use /tmp for Render compatibility to avoid permission issues
+# Note: Data will be reset on restart. For persistence, use a Persistent Disk or external DB.
+import tempfile
+DB_FILE = os.path.join(tempfile.gettempdir(), "mlsac.db")
 
 import uuid
 
@@ -249,11 +252,12 @@ async def get_stats():
     }
 
 # Serve static files
-app.mount("/static", StaticFiles(directory="backend/static"), name="static")
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 @app.get("/")
 async def read_index():
-    return FileResponse('backend/static/index.html')
+    return FileResponse(os.path.join(BASE_DIR, "static/index.html"))
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
